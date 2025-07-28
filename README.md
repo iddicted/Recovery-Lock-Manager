@@ -1,4 +1,4 @@
-![Recover Lock Enabler](./Images/recovery-lock-enabler.png)
+![Recover Lock Enabler](./Images/rlockenabler.png)
 
 # Recovery-Lock-Enabler
 ---
