@@ -31,6 +31,7 @@ client_id="CLIENT_ID_HERE" # Replace with your client ID
 client_secret="CLIENT_SECRET_HERE" # Replace with your client secret
 group_name="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
 site_ID="-1" # Site ID, -1 for all sites (default)
+recovery_password="Jamf123456"
 #### End Configuration Variables ####
 
 
@@ -85,6 +86,14 @@ get_group_info() {
 		--header 'accept: application/json' \
 		--header 'content-type: application/json'
 }
+
+# Function to create a random password
+generate_random_password() {
+	local length=12
+	local charset='A-Za-z0-9!@#$%^&*()_+'
+	local password=$(cat /dev/urandom | tr -dc "$charset" | fold -w "$length" | head -n 1)
+	echo "$password"
+}
 ###### End Functions #####
 
 
@@ -92,8 +101,6 @@ get_group_info() {
 # check / get access token
 echo "#### Checking / retrieving access token ####"
 checkTokenExpiration
-
-
 
 # BEGIN API COMMANDS #
 
@@ -145,6 +152,16 @@ else
 	fi
 fi
 
+# Check if password was provided, if not generate a random one
+if [[ -z "$recovery_password" ]]; then
+	echo "No recovery password provided. Generating a random password..."
+	recovery_password=$(generate_random_password)
+	echo "Generated a random Recovery Password!"
+else
+	echo "Using provided Recovery Password!"
+fi
+
+
 # Get members of Smart Computer Group
 group_members=$(curl --request GET \
 	--url "$jamf_pro_url/api/v2/computer-groups/smart-group-membership/$group_id" \
@@ -186,7 +203,7 @@ echo "$computer_ids" | while read -r computer_id; do
 		],
 		\"commandData\": {
 			\"commandType\": \"SET_RECOVERY_LOCK\",
-			\"newPassword\": \"\"
+			\"newPassword\": \"${recovery_password}\",
 		}
 	}")
 
