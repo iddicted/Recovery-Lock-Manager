@@ -32,8 +32,6 @@ client_secret="CLIENT_SECRET_HERE" # Replace with your client secret
 group_name="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
 site_ID="-1" # Site ID, -1 for all sites (default)
 recovery_password="Jamf123456"
-#### End Configuration Variables ####
-
 
 #### Functions ####
 # Functions for authentication and token management
@@ -203,7 +201,7 @@ echo "$computer_ids" | while read -r computer_id; do
 		],
 		\"commandData\": {
 			\"commandType\": \"SET_RECOVERY_LOCK\",
-			\"newPassword\": \"${recovery_password}\",
+			\"newPassword\": \"${recovery_password}\"
 		}
 	}")
 
