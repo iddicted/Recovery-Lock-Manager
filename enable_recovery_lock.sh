@@ -13,8 +13,10 @@
 				# - Read Advanced Computer Searches
 				# - Send Set Recovery Lock Command
 				# - Read Smart Computer Groups
+				# - Update Smart Computer Groups
+				# - Create Smart Computer Groups
 				# - View MDM command information in Jamf Pro API
-				# - Read Computers, Create Smart Computer Groups)
+				# - Read Computers)
 		# 2. Replace the configuration variables below with your Jamf Pro URL, client ID, client secret, and the name of the Smart Group you want to target.
 		# 3. Ensure you have jq installed for JSON parsing. (preinstallaed with macOS Sequoia (version 15) and later)
 #####
@@ -29,10 +31,12 @@
 jamf_pro_url="JAMF_PRO_URL_HERE" # Replace with your Jamf Pro URL (e.g., "https://example.jamfcloud.com:")
 client_id="CLIENT_ID_HERE" # Replace with your client ID
 client_secret="CLIENT_SECRET_HERE" # Replace with your client secret
-group_name="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
+group_name_lock_disabled="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
+group_name_lock_enabled="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Enabled")
 site_ID="-1" # Site ID, -1 for all sites (default)
 generate_random_password="true" # Set to "true" a random password will be generated, set to "false" to use the provided password
 password="Jamf1234567" # Set Password for Recovery Lock, only used if generate_random_password is set to "false" or empty
+mode="enable" # Set to enable or disable Recovery Lock
 
 #### End Configuration Variables ####
 
@@ -79,10 +83,17 @@ invalidateToken() {
     fi
 }
 
-# Function to get group info by name
-get_group_info() {
+# Function to get group infos by name
+get_group_info_disabled() {
 	curl --silent --request GET \
-		--url "$jamf_pro_url/api/v2/computer-groups/smart-groups?page=0&page-size=100&sort=id%3Aasc&filter=name==%22${group_name// /%20}%22" \
+		--url "$jamf_pro_url/api/v2/computer-groups/smart-groups?page=0&page-size=100&sort=id%3Aasc&filter=name==%22${group_name_lock_disabled// /%20}%22" \
+		--header "Authorization: Bearer $access_token" \
+		--header 'accept: application/json' \
+		--header 'content-type: application/json'
+}
+get_group_info_enabled() {
+	curl --silent --request GET \
+		--url "$jamf_pro_url/api/v2/computer-groups/smart-groups?page=0&page-size=100&sort=id%3Aasc&filter=name==%22${group_name_lock_enabled// /%20}%22" \
 		--header "Authorization: Bearer $access_token" \
 		--header 'accept: application/json' \
 		--header 'content-type: application/json'
@@ -95,6 +106,120 @@ generate_random_password() {
 	local password=$(cat /dev/urandom | tr -dc "$charset" | fold -w "$length" | head -n 1)
 	echo "$password"
 }
+
+# Function to create the recovery lock disabled group
+create_recovery_lock_disabled_group() {
+	## Creating the recovery lock disabled smart group if it does not exist
+	# Check if group name is set else use default
+	if [[ -z "$group_name_lock_disabled" ]]; then
+		echo "No group name provided for 'Lock Disabled'. Using Smart Group'Recover_Lock_Manager: Recovery_Lock_disabled'."
+		group_name_lock_disabled="Recover_Lock_Manager: Recovery_Lock_disabled"
+	fi
+
+	# Check if group already exists
+	disabled_group=$(get_group_info_disabled)
+	#echo "DEBUG: $disabled_group"
+
+	if [[ $(echo "$disabled_group" | jq -r '.results | length') -gt 0 ]]; then
+		group_id=$(echo "$disabled_group" | jq -r '.results[0].id')
+		echo "The Smart Computer Group '$group_name_lock_disabled' with ID '$group_id' already exists. Recalculating the Smart Computer Group '$group_name_lock_disabled'..."
+		echo ""
+		# recalculate the smart group
+		curl --request POST \
+			--silent \
+			--url "$jamf_pro_url/api/v1/smart-computer-groups/$group_id/recalculate" \
+			--header "Authorization: Bearer $access_token" \
+			--header 'accept: application/json' \
+			--output /dev/null
+	else
+		echo "Creating smart group '$group_name_lock_disabled'..."
+		create_response=$(curl --silent --request POST \
+			--url "$jamf_pro_url/api/v2/computer-groups/smart-groups" \
+			--header "Authorization: Bearer $access_token" \
+			--header 'accept: application/json' \
+			--header 'content-type: application/json' \
+			--data "{
+				\"name\": \"${group_name_lock_disabled}\",
+				\"criteria\": [
+					{
+						\"name\": \"Recovery Lock Enabled\",
+						\"value\": \"Not Enabled\",
+						\"searchType\": \"is\",
+						\"andOr\": \"and\"
+					}
+				],
+				\"siteId\": \"$site_ID\"
+			}")
+		# echo "DEBUG (create): $create_response"
+		# Check again if group exists
+		disabled_group=$(get_group_info_disabled)
+		if [[ $(echo "$disabled_group" | jq -r '.results | length') -gt 0 ]]; then
+			group_id=$(echo "$disabled_group" | jq -r '.results[0].id')
+			echo "Successfully create the Smart Computer Group: Name: '$group_name_lock_disabled' ID: '$group_id'. Proceeding..."
+			echo ""
+		else
+			echo "Failed to create smart group '$group_name_lock_disabled'."
+			exit 1
+		fi
+	fi
+}
+
+# Function to create the recovery lock enabled group
+create_recovery_lock_enabled_group() {
+	## Creating the recovery lock enabled smart group if it does not exist
+	# Check if group name is set else use default
+	if [[ -z "$group_name_lock_enabled" ]]; then
+		echo "No group name provided for 'Lock Enabled'. Using Smart Group 'Recover_Lock_Manager: Recovery_Lock_Enabled'."
+		group_name_lock_enabled="Recover_Lock_Manager: Recovery_Lock_Enabled"
+	fi
+
+	# Check if group exists
+	enabled_group=$(get_group_info_enabled)
+	#echo "DEBUG: $enabled_group"
+
+	if [[ $(echo "$enabled_group" | jq -r '.results | length') -gt 0 ]]; then
+		group_id=$(echo "$enabled_group" | jq -r '.results[0].id')
+		echo "The Smart Computer Group '$group_name_lock_enabled' with ID '$group_id' already exists. Recalculating the Smart Computer Group '$group_name_lock_enabled'..."
+		echo ""
+		# recalculate the smart group
+		curl --silent --request POST \
+			--url "$jamf_pro_url/api/v1/smart-computer-groups/$group_id/recalculate" \
+			--header "Authorization: Bearer $access_token" \
+			--header 'accept: application/json' \
+			--output /dev/null
+	else
+		echo "Creating smart group '$group_name_lock_enabled'..."
+		create_response=$(curl --silent --request POST \
+			--url "$jamf_pro_url/api/v2/computer-groups/smart-groups" \
+			--header "Authorization: Bearer $access_token" \
+			--header 'accept: application/json' \
+			--header 'content-type: application/json' \
+			--data "{
+				\"name\": \"${group_name_lock_enabled}\",
+				\"criteria\": [
+					{
+						\"name\": \"Recovery Lock Enabled\",
+						\"value\": \"Enabled\",
+						\"searchType\": \"is\",
+						\"andOr\": \"and\"
+					}
+				],
+				\"siteId\": \"$site_ID\"
+			}")
+		# echo "DEBUG (create): $create_response"
+		# Check again if group exists
+		enabled_group=$(get_group_info_enabled)
+		if [[ $(echo "$enabled_group" | jq -r '.results | length') -gt 0 ]]; then
+			group_id=$(echo "$enabled_group" | jq -r '.results[0].id')
+			echo "Successfully create the Smart Computer Group: Name: '$group_name_lock_enabled' ID: '$group_id'. Proceeding..."
+			echo ""
+		else
+			echo "Failed to create smart group '$group_name_lock_enabled'."
+			exit 1
+		fi
+	fi
+}
+
 ###### End Functions #####
 
 
@@ -108,57 +233,33 @@ checkTokenExpiration
 
 echo "#### Authentication successful. proceeding with API commands ####"
 echo ""
-# creating the needed smart group if it does not exist
-# First check if the group already exists
-# Check if group exists
-group_exists=$(get_group_info)
-#echo "DEBUG: $group_exists"
 
-if [[ $(echo "$group_exists" | jq -r '.results | length') -gt 0 ]]; then
-	group_id=$(echo "$group_exists" | jq -r '.results[0].id')
-	echo "The Smart Computer Group '$group_name' with ID '$group_id' already exists. Proceeding..."
-	echo ""
-else
-	echo "Creating smart group '$group_name'..."
-	create_response=$(curl --silent --request POST \
-		--url "$jamf_pro_url/api/v2/computer-groups/smart-groups" \
-		--header "Authorization: Bearer $access_token" \
-		--header 'accept: application/json' \
-		--header 'content-type: application/json' \
-		--data "{
-			\"name\": \"${group_name}\",
-			\"criteria\": [
-				{
-					\"name\": \"Recovery Lock Enabled\",
-					\"value\": \"Not Enabled\",
-					\"searchType\": \"is\",
-					\"andOr\": \"and\"
-				}
-			],
-			\"siteId\": \"$site_ID\"
-		}")
-	# echo "DEBUG (create): $create_response"
-	# Check again if group exists
-	group_exists=$(get_group_info)
-	if [[ $(echo "$group_exists" | jq -r '.results | length') -gt 0 ]]; then
-		group_id=$(echo "$group_exists" | jq -r '.results[0].id')
-		echo "Successfully create the Smart Computer Group: Name: '$group_name' ID: '$group_id'. Proceeding..."
-		echo ""
-		
+# If mode is set to enable generate check for or generate password and create groups
+if [[ "$mode" == "enable" ]]; then
+	# Check if generate_random_password is set to true or empty, if yes generate a random password
+	if [[ "$generate_random_password" == "true" ]]; then
+		echo "Requested random password. Generating a random password for Recovery Lock..."
+		recovery_password=$(generate_random_password)
+		echo "Generated Recovery Lock Password."
+		# creating group
+		create_recovery_lock_disabled_group
+
+	elif [[ "$generate_random_password" != "true" && -z "$password" ]]; then
+		echo "No random password requested and no provided password found. A password is required!! Falling back to generating a random password for Recovery Lock..."
+		recovery_password=$(generate_random_password)
+		echo "Generated Recovery Lock Password."
+		# creating group
+		create_recovery_lock_disabled_group
 	else
-		echo "Failed to create smart group '$group_name'."
-		exit 1
+		recovery_password=${password}
+		echo "Using the provided Recovery Lock Password."
+		# creating group
+		create_recovery_lock_disabled_group
 	fi
-fi
-
-# Check if generate_random_password is set to true or empty, if yes generate a random password
-if [[ "$generate_random_password" == "true" && -z "$recovery_password" ]]; then
-	echo "Generating a random password for Recovery Lock..."
-	recovery_password=$(generate_random_password)
-	echo "Generated Recovery Lock Password."
 else
-	recovery_password=${password}
-	echo "Using provided Recovery Lock Password."
+	echo "Mode is set to disable Recovery Lock. No password will be generated or used."
+	recovery_password=""
+	create_recovery_lock_enabled_group
 fi
 
 
@@ -168,6 +269,12 @@ group_members=$(curl --request GET \
 	--silent \
 	--header 'accept: application/json' \
 	--header "Authorization: Bearer ${access_token}")
+
+# If there are no group members exit
+if [[ $(echo "$group_members" | jq -r '.members | length') -eq 0 ]]; then
+	echo "No group members found. Exiting."
+	exit 0
+fi
 
 # echo "DEBUG $group_members"
 
@@ -187,8 +294,12 @@ echo "$computer_ids" | while read -r computer_id; do
 	managementId=$(echo "$computer_inventory" | tr -d '\000-\037' | jq -r '.general.managementId')
 	echo "Management ID: $managementId"
 	#echo "DEBUG: RECOVERY LOCK PASSWORD: $recovery_password"
-	# set recovery lock
-	echo "Setting Recovery Lock for Management ID: $managementId"
+	# if mode is set to 'enable', print Setting Recovery Lock, else print disabling recovery lock
+	if [[ "$mode" == "enable" ]]; then
+		echo "Setting Recovery Lock for Management ID: $managementId"
+	else
+		echo "Disabling Recovery Lock for Management ID: $managementId"
+	fi
 	response=$(curl -s -w "%{http_code}" -o /tmp/set_recovery_lock_response.json \
 	--location \
 	--request POST "${jamf_pro_url}/api/v2/mdm/commands" \
@@ -209,15 +320,24 @@ echo "$computer_ids" | while read -r computer_id; do
 
 	echo "Response code: $response"
 	if [[ "$response" -eq 201 ]]; then
-		echo "Recovery Lock set successfully."
+		if [[ $mode == "enable" ]]; then
+			echo "Recovery Lock set successfully."
+			# recalculate smart groups 
+		else
+			echo "Recovery Lock disabled successfully."
+		fi
 	else
-		echo "Failed to set Recovery Lock. Response code: $response"
-		cat /tmp/set_recovery_lock_response.json
+		if [[ $mode == "enable" ]]; then
+			echo "Failed to set Recovery Lock. Response code: $response"
+		else
+			echo "Failed to disable Recovery Lock. Response code: $response"
+		fi
 	fi
 	echo "#################### Finished processing computer ID: $computer_id ####################"
 	echo ""
 done
-# END API COMMANDS #
+
+	# END API COMMANDS #
 
 echo ""
 checkTokenExpiration
