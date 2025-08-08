@@ -31,8 +31,8 @@ client_id="CLIENT_ID_HERE" # Replace with your client ID
 client_secret="CLIENT_SECRET_HERE" # Replace with your client secret
 group_name="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
 site_ID="-1" # Site ID, -1 for all sites (default)
-generate_random_password="true" # Set to "true" a random password will be generated, set to "false" to use the provided recovery_password
-password="Jamf1234567" # Set Password for Recovery Lock, leave empty to generate a random password
+generate_random_password="true" # Set to "true" a random password will be generated, set to "false" to use the provided password
+password="Jamf1234567" # Set Password for Recovery Lock, only used if generate_random_password is set to "false" or empty
 
 #### End Configuration Variables ####
 
