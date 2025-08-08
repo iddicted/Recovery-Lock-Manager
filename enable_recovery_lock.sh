@@ -31,8 +31,10 @@ client_id="CLIENT_ID_HERE" # Replace with your client ID
 client_secret="CLIENT_SECRET_HERE" # Replace with your client secret
 group_name="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
 site_ID="-1" # Site ID, -1 for all sites (default)
-#### End Configuration Variables ####
+generate_random_password="true" # Set to "true" a random password will be generated, set to "false" to use the provided password
+password="Jamf1234567" # Set Password for Recovery Lock, only used if generate_random_password is set to "false" or empty
 
+#### End Configuration Variables ####
 
 #### Functions ####
 # Functions for authentication and token management
@@ -85,6 +87,14 @@ get_group_info() {
 		--header 'accept: application/json' \
 		--header 'content-type: application/json'
 }
+
+# Function to create a random password
+generate_random_password() {
+	local length=28 # Length of the password
+	local charset='A-Za-z0-9!@#$%^&*()_+'
+	local password=$(cat /dev/urandom | tr -dc "$charset" | fold -w "$length" | head -n 1)
+	echo "$password"
+}
 ###### End Functions #####
 
 
@@ -93,8 +103,6 @@ get_group_info() {
 echo "#### Checking / retrieving access token ####"
 checkTokenExpiration
 
-
-
 # BEGIN API COMMANDS #
 
 
@@ -102,8 +110,6 @@ echo "#### Authentication successful. proceeding with API commands ####"
 echo ""
 # creating the needed smart group if it does not exist
 # First check if the group already exists
-
-
 # Check if group exists
 group_exists=$(get_group_info)
 #echo "DEBUG: $group_exists"
@@ -131,7 +137,7 @@ else
 			],
 			\"siteId\": \"$site_ID\"
 		}")
-	#echo "DEBUG (create): $create_response"
+	# echo "DEBUG (create): $create_response"
 	# Check again if group exists
 	group_exists=$(get_group_info)
 	if [[ $(echo "$group_exists" | jq -r '.results | length') -gt 0 ]]; then
@@ -145,6 +151,17 @@ else
 	fi
 fi
 
+# Check if generate_random_password is set to true or empty, if yes generate a random password
+if [[ "$generate_random_password" == "true" && -z "$recovery_password" ]]; then
+	echo "Generating a random password for Recovery Lock..."
+	recovery_password=$(generate_random_password)
+	echo "Generated Recovery Lock Password."
+else
+	recovery_password=${password}
+	echo "Using provided Recovery Lock Password."
+fi
+
+
 # Get members of Smart Computer Group
 group_members=$(curl --request GET \
 	--url "$jamf_pro_url/api/v2/computer-groups/smart-group-membership/$group_id" \
@@ -152,7 +169,7 @@ group_members=$(curl --request GET \
 	--header 'accept: application/json' \
 	--header "Authorization: Bearer ${access_token}")
 
-echo "DEBUG $group_members"
+# echo "DEBUG $group_members"
 
 # extract computer IDs from the group members
 computer_ids=$(echo "$group_members" | jq -r '.members[]')
@@ -169,7 +186,7 @@ echo "$computer_ids" | while read -r computer_id; do
 
 	managementId=$(echo "$computer_inventory" | tr -d '\000-\037' | jq -r '.general.managementId')
 	echo "Management ID: $managementId"
-
+	#echo "DEBUG: RECOVERY LOCK PASSWORD: $recovery_password"
 	# set recovery lock
 	echo "Setting Recovery Lock for Management ID: $managementId"
 	response=$(curl -s -w "%{http_code}" -o /tmp/set_recovery_lock_response.json \
@@ -186,7 +203,7 @@ echo "$computer_ids" | while read -r computer_id; do
 		],
 		\"commandData\": {
 			\"commandType\": \"SET_RECOVERY_LOCK\",
-			\"newPassword\": \"\"
+			\"newPassword\": \"$recovery_password\"
 		}
 	}")
 
