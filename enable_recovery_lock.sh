@@ -31,8 +31,8 @@ client_id="CLIENT_ID_HERE" # Replace with your client ID
 client_secret="CLIENT_SECRET_HERE" # Replace with your client secret
 group_name="GROUP_NAME_HERE" # Name of the Smart Group to create or check (e.g., "Recovery Lock Not Enabled")
 site_ID="-1" # Site ID, -1 for all sites (default)
-enable_recovery_lock="true" # Set to "true" to enable Recovery Lock, "false" to disable it
-recovery_password="Jamf1234567" # Set Password for Recovery Lock, leave empty to generate a random password
+generate_random_password="true" # Set to "true" a random password will be generated, set to "false" to use the provided recovery_password
+password="Jamf1234567" # Set Password for Recovery Lock, leave empty to generate a random password
 
 #### End Configuration Variables ####
 
@@ -110,8 +110,6 @@ echo "#### Authentication successful. proceeding with API commands ####"
 echo ""
 # creating the needed smart group if it does not exist
 # First check if the group already exists
-
-
 # Check if group exists
 group_exists=$(get_group_info)
 #echo "DEBUG: $group_exists"
@@ -153,12 +151,13 @@ else
 	fi
 fi
 
-# Check if enable_recovery_lock is set to true or empty, if yes generate a random password
-if [[ "$enable_recovery_lock" == "true" && -z "$recovery_password" ]]; then
+# Check if generate_random_password is set to true or empty, if yes generate a random password
+if [[ "$generate_random_password" == "true" && -z "$recovery_password" ]]; then
 	echo "Generating a random password for Recovery Lock..."
 	recovery_password=$(generate_random_password)
 	echo "Generated Recovery Lock Password."
 else
+	recovery_password=${password}
 	echo "Using provided Recovery Lock Password."
 fi
 
