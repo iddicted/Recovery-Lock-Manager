@@ -33,7 +33,7 @@
 ##### CONFIGURABLE VARIABLES #####
 ### Jamf Pro Server credentials ###
 # Prompt for credentials: yes or no
-prompt_for_credentials="no" # yes or no
+prompt_for_credentials="yes" # yes or no
 
 # Load Jamf Pro credentials from environment variables
 # If prompt_for_credentials is set to "yes", the script will prompt for credentials using Swift Dialog
