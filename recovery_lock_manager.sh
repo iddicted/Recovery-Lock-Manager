@@ -48,7 +48,7 @@ client_secret="${JAMF_CLIENT_SECRET}" # Set JAMF_CLIENT_SECRET in your environme
 # Path to Swift Dialog binary
 messageFont="size=20,name=HelveticaNeue"
 titleFont="weight=bold,size=30,name=HelveticaNeue-Bold"
-icon="https://github.com/iddicted/Recovery-Lock-Enabler/blob/main/Images/rlockenabler.png?raw=true"
+icon="https://github.com/iddicted/Recovery-Lock-Enabler/blob/main/Images/RecoveryLockManager.jpg?raw=true"
 #### End Configuration Variables ####
 ################################################################################
 
