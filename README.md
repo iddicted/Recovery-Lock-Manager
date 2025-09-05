@@ -1,6 +1,6 @@
 ![Recover Lock Enabler](./Images/RecoveryLockManager.jpg)
 
-# Recovery-Lock-Manager
+# Recovery Lock Manager
 ---
 
 
