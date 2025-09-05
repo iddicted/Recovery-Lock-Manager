@@ -33,7 +33,7 @@
 ##### CONFIGURABLE VARIABLES #####
 ### Jamf Pro Server credentials ###
 # Prompt for credentials: yes or no
-prompt_for_credentials="no" # yes or no
+prompt_for_credentials="yes" # yes or no
 
 # Load Jamf Pro credentials from environment variables
 # If prompt_for_credentials is set to "yes", the script will prompt for credentials using Swift Dialog
@@ -144,7 +144,7 @@ credentialPrompt() {
 	echo "INFO: Prompting user for Jamf Pro credentials..."
     # Request JSON output and use the correct syntax for textfield options
     serverDetails=$(/usr/local/bin/dialog \
-        --title "Activation Lock Manager" \
+        --title "Recovery Lock Manager" \
         --message "Please enter your Jamf Pro details below:" \
         --textfield "Jamf Pro URL" --required \
         --textfield "Client ID" --required \
@@ -177,7 +177,7 @@ credentialPrompt() {
 enable_disable_prompt() {
 	echo "INFO: Prompting user for Activation Lock mode..."
 	mode=$(/usr/local/bin/dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "Would you like to enable or disable Activation Lock on your Computers?" \
 		--radio "groupSelection" \
 		--selecttitle "Please select an option",radio --selectvalues "Enable, Disable" \
@@ -202,7 +202,7 @@ enable_disable_prompt() {
 create_random_password_prompt() {
 	echo "INFO: Prompting user for password options..."
 	generate_random_password=$(/usr/local/bin/dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "Should I create a random password for you?" \
 		--radio "groupSelection" \
 		--selecttitle "Please select an option",radio --selectvalues "Yes, I'll create my own" \
@@ -226,7 +226,7 @@ create_random_password_prompt() {
 enter_password_prompt() {
 	echo "INFO: Prompting user for password..."
 	password=$(/usr/local/bin/dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "Please enter a password for Recovery Lock:" \
 		--textfield "Password:",required,secure,prompt="ABC123" \
 		--icon "$icon" \
@@ -247,7 +247,7 @@ enter_password_prompt() {
 # Info screen that a random password has been generated
 random_password_info() {
 	generate_random_password=$(/usr/local/bin/dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "I have created a random Password for you. \n\nYou can view it in Jamf Pro." \
 		--icon "$icon" \
 		--alignment "left" \
@@ -274,7 +274,7 @@ select_site_prompt() {
 
 	# Prompt user to select a site
 	selectedSite=$(dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "Please select the site for the smart group:\n\nDefault: Full Jamf Pro" \
 		--messagefont "$messageFont" \
         --titlefont "$titleFont" \
@@ -299,7 +299,7 @@ set_group_name_lock_disabled_prompt() {
 	local dialog_output
 	# Prompt user for group name
 	dialog_output=$(/usr/local/bin/dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "Enter the name for the Smart Group to create or use: \n\nIt will contain all Computers where Activation Lock is disabled.\n\n(Default: 'Recover Lock Manager: Recovery Lock Disabled')" \
 		--textfield "Group Name:",required,prompt="Recovery Lock Disabled" \
 		--icon "$icon" \
@@ -332,7 +332,7 @@ set_group_name_lock_enabled_prompt() {
 	local dialog_output
 	# Prompt user for group name
 	dialog_output=$(/usr/local/bin/dialog \
-		--title "Activation Lock Manager" \
+		--title "Recovery Lock Manager" \
 		--message "Enter the name for the Smart Group to create or use: \n\nThis Group will contain all Computers where Activation Lock is enabled.\n\n(Default: 'Recover Lock Manager: Recovery Lock Enabled')" \
 		--textfield "Group Name:",required,prompt="Recovery Lock Enabled" \
 		--icon "$icon" \
@@ -360,7 +360,7 @@ continue_prompt () {
 	echo "INFO: Prompting user to continue..."
 	# Get number of group members
 	continue_choice=$(/usr/local/bin/dialog \
-	--title "Activation Lock Manager" \
+	--title "Recovery Lock Manager" \
 	--message "I have found $num_group_members computers in the selected Smart Group. \n\nWould you like to proceed?" \
 	--icon "$icon" \
 	--alignment "left" \
@@ -383,7 +383,7 @@ donePrompt() {
 	echo "INFO: API action completed. Setup Manager Workflow successful."
 	# Prompt user that action is completed
 	/usr/local/bin/dialog \
-	--title "Activation Lock Manager" \
+	--title "Recovery Lock Manager" \
 	--message "Action Completed. \n\nProcessed $num_group_members computers in the Smart Group '$group_name_lock_disabled'. \n\nPlease note that a reboot and Inventory update are required before the updated information will show in Jamf Pro" \
 	--icon "$icon" \
 	--alignment "left" \
@@ -398,7 +398,7 @@ donePrompt() {
 enabled_group_exists_prompt () {
 	echo "INFO: Prompting user to continue..."
 	enabled_group_exists_choice=$(/usr/local/bin/dialog \
-	--title "Activation Lock Manager" \
+	--title "Recovery Lock Manager" \
 	--message "The Smart Group '$group_name_lock_enabled' already exists under the site '$group_site_name'. \n\nWould you like to use the group and continue?" \
 	--icon "$icon" \
 	--alignment "left" \
@@ -419,7 +419,7 @@ enabled_group_exists_prompt () {
 disabled_group_exists_prompt () {
 	echo "INFO: Prompting user to continue..."
 	disabled_group_exists_choice=$(/usr/local/bin/dialog \
-	--title "Activation Lock Manager" \
+	--title "Recovery Lock Manager" \
 	--message "The Smart Group '$group_name_lock_disabled' already exists under the site '$group_site_name'. \n\nWould you like to use the group and continue?" \
 	--icon "$icon" \
 	--alignment "left" \
@@ -440,7 +440,7 @@ disabled_group_exists_prompt () {
 no_members_in_disabled_group_prompt () {
 	echo "INFO: Prompting user to continue..."
 	no_members_choice=$(/usr/local/bin/dialog \
-	--title "Activation Lock Manager" \
+	--title "Recovery Lock Manager" \
 	--message "The Smart Group '$group_name_lock_disabled' has no members.\n\nClick 'OK' to exit." \
 	--icon "$icon" \
 	--alignment "left" \
@@ -458,7 +458,7 @@ no_members_in_disabled_group_prompt () {
 no_members_in_enabled_group_prompt () {
 	echo "INFO: Prompting user to continue..."
 	no_members_choice=$(/usr/local/bin/dialog \
-	--title "Activation Lock Manager" \
+	--title "Recovery Lock Manager" \
 	--message "The Smart Group '$group_name_lock_enabled' has no members.\n\nClick 'OK' to exit." \
 	--icon "$icon" \
 	--alignment "left" \
@@ -477,7 +477,7 @@ no_members_in_enabled_group_prompt () {
 # group_exists_prompt () {
 # 	echo "INFO: Prompting user to continue..."
 # 	group_exists_choice=$(/usr/local/bin/dialog \
-# 	--title "Activation Lock Manager" \
+# 	--title "Recovery Lock Manager" \
 # 	--message "The Smart Group '$group_name_lock_disabled' already exists. \n\nWould you like to use the group and continue?" \
 # 	--icon "$icon" \
 # 	--alignment "left" \
