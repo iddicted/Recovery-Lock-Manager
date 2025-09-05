@@ -22,16 +22,16 @@ The script creates a Smart Group in Jamf Pro to identify these devices and then 
 - Customizable variables for easy configuration.
 - Error handling and user feedback through dialog boxes.
 
-![Credentials Prompt](Images/CredentialsPrompt.png)
-![EnableDisable Prompt](Images/EnableDisablePrompt.png)
-![Random Password Prompt](Images/RadomPwPrompt.png)
-![Create Password Prompt](Images/EnterPwPrompt.png)
-![Site Selection Prompt](Images/SiteSelectionPrompt.png)
-![Group Name Prompt](Images/GroupNamePrompt.png)
-![Existing Group Prompt](Images/GroupExistsInfoPrompt.png)
-![Members in Group Prompt](Images/MemberInGroupPrompt.png)
-![No Members in Enabled Group Prompt](Images/NoGroupMembersPrompt.png)
-![Completed Prompt](Images/ActionCompletedPrompt.png)
+![Credentials Prompt](Images/Credentials_Prompt.png)
+![EnableDisable Prompt](Images/EnableDisable_Prompt.png)
+![Random Password Prompt](Images/RadomPw_Prompt.png)
+![Create Password Prompt](Images/EnterPw_Prompt.png)
+![Site Selection Prompt](Images/SiteSelection_Prompt.png)
+![Group Name Prompt](Images/GroupName_Prompt.png)
+![Existing Group Prompt](Images/GroupExistsInfo_Prompt.png)
+![Members in Group Prompt](Images/MemberInGroup_Prompt.png)
+![No Members in Enabled Group Prompt](Images/NoGroupMembers_Prompt.png)
+![Completed Prompt](Images/ActionCompleted_Prompt.png)
 
 ## Requirements
 - Access to the Jamf Pro API
