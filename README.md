@@ -54,6 +54,10 @@ The script creates a Smart Group in Jamf Pro to identify these devices and then 
 - Read Sites
 
 ## Usage
+> [!CAUTION]
+> Observations showed that with current version of Jamf Pro, when sending a recovery lock command through the Jamf Pro API, the password will **stop rotating** automatically even if configured to do so in the prestage settings. I will provide an update and report it here if this changes in future versions of Jamf Pro.
+
+
 1. Clone the repository or download the script.
 2. Open the script in a text editor.
 3. (optional) Update the variables at the top of the script.
