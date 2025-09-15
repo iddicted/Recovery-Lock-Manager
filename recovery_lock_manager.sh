@@ -248,7 +248,7 @@ enter_password_prompt() {
 random_password_info() {
 	generate_random_password=$(/usr/local/bin/dialog \
 		--title "Recovery Lock Manager" \
-		--message "I have created a random Password for you. \n\nYou can view it in Jamf Pro." \
+		--message "I will create random passwords for each device. \n\nYou can view it in Jamf Pro." \
 		--icon "$icon" \
 		--alignment "left" \
 		--button2 \
@@ -519,7 +519,6 @@ get_group_info_enabled() {
 }
 # Creating a random password
 generate_random_password() {
-    echo "INFO: User requested a password. Generating a random password..."
 	local length=28 # Length of the password
     local charset='A-Za-z0-9!@#$%^&*()_+'
     # FIX: Add LC_ALL=C to the tr command to prevent locale errors.
@@ -709,14 +708,7 @@ if [[ "$mode" == "Enable" ]]; then # Enable mode
 	create_random_password_prompt # Prompt for random password generation
 	# If generate_random_password is set to "Yes" generate a random password
 	if [[ "$generate_random_password" == "Yes" ]]; then
-		echo "INFO: User opted for a random password. Generating..."
-		recovery_password=$(generate_random_password)
-		if [ $? -ne 0 ]; then
-			echo "Failed to generate a random password. Exiting."
-			exit 1
-		fi
-		echo "INFO: Generated Recovery Lock Password."
-		#echo "DEBUG: Generated Recovery Lock Password: $recovery_password"
+		
 		random_password_info # Inform user that a random password has been generated
 		echo "INFO: Using the generated password as Recovery Lock Password."
 		select_site_prompt # Prompt user for Site ID
@@ -774,7 +766,7 @@ computer_ids=$(echo "$group_members" | jq -r '.members[]')
 
 # START PROCESSING COMPUTERS
 # iterate through each computer ID
-
+echo ""
 echo "###### Processing Computers in Smart Group '$group_name_lock_disabled' ######"
 echo "$computer_ids" | while read -r computer_id; do
 	[[ -z "$computer_id" ]] && continue
@@ -788,6 +780,14 @@ echo "$computer_ids" | while read -r computer_id; do
 	managementId=$(echo "$computer_inventory" | tr -d '\000-\037' | jq -r '.general.managementId')
 	echo "Management ID: $managementId"
 	#echo "DEBUG: RECOVERY LOCK PASSWORD: $recovery_password"
+	echo "INFO: User opted for a random password. Generating..."
+	recovery_password=$(generate_random_password)
+	if [ $? -ne 0 ]; then
+		echo "Failed to generate a random password. Exiting."
+		exit 1
+	fi
+	echo "INFO: Generated Recovery Lock Password."
+	#echo "DEBUG: Generated Recovery Lock Password: $recovery_password"
 	# if mode is set to 'enable', print Setting Recovery Lock, else print disabling recovery lock
 	if [[ "$mode" == "enable" ]]; then
 		echo "Setting Recovery Lock for Management ID: $managementId"
