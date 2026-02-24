@@ -173,12 +173,12 @@ credentialPrompt() {
         jamf_pro_url="https://$jamf_pro_url"
     fi
 }
-# Prompt asking for enabling or disabling Activation Lock
+# Prompt asking for enabling or disabling Recovery Lock
 enable_disable_prompt() {
-	echo "INFO: Prompting user for Activation Lock mode..."
+	echo "INFO: Prompting user for Recovery Lock mode..."
 	mode=$(/usr/local/bin/dialog \
 		--title "Recovery Lock Manager" \
-		--message "Would you like to enable or disable Activation Lock on your Computers?" \
+		--message "Would you like to enable or disable Recovery Lock on your Computers?" \
 		--radio "groupSelection" \
 		--selecttitle "Please select an option",radio --selectvalues "Enable, Disable" \
 		--icon "$icon" \
@@ -293,14 +293,14 @@ select_site_prompt() {
 		echo "INFO: User selected site: $selectedSite with ID: $site_ID"
 	fi
 }
-# Prompt to enter name for Smart Group where Activation Lock is disabled
+# Prompt to enter name for Smart Group where Recovery Lock is disabled
 set_group_name_lock_disabled_prompt() {
 	echo "INFO: Prompting user for Smart Group name..."
 	local dialog_output
 	# Prompt user for group name
 	dialog_output=$(/usr/local/bin/dialog \
 		--title "Recovery Lock Manager" \
-		--message "Enter the name for the Smart Group to create or use: \n\nIt will contain all Computers where Activation Lock is disabled.\n\n(Default: 'Recover Lock Manager: Recovery Lock Disabled')" \
+		--message "Enter the name for the Smart Group to create or use: \n\nIt will contain all Computers where Recovery Lock is disabled.\n\n(Default: 'Recover Lock Manager: Recovery Lock Disabled')" \
 		--textfield "Group Name:",required,prompt="Recovery Lock Disabled" \
 		--icon "$icon" \
 		--alignment "left" \
@@ -326,14 +326,14 @@ set_group_name_lock_disabled_prompt() {
 	fi
 	# set +x
 }
-# Prompt to enter name for Smart Group where Activation Lock is enabled
+# Prompt to enter name for Smart Group where Recovery Lock is enabled
 set_group_name_lock_enabled_prompt() {
 	echo "INFO: Prompting user for Smart Group name..."
 	local dialog_output
 	# Prompt user for group name
 	dialog_output=$(/usr/local/bin/dialog \
 		--title "Recovery Lock Manager" \
-		--message "Enter the name for the Smart Group to create or use: \n\nThis Group will contain all Computers where Activation Lock is enabled.\n\n(Default: 'Recover Lock Manager: Recovery Lock Enabled')" \
+		--message "Enter the name for the Smart Group to create or use: \n\nThis Group will contain all Computers where Recovery Lock is enabled.\n\n(Default: 'Recover Lock Manager: Recovery Lock Enabled')" \
 		--textfield "Group Name:",required,prompt="Recovery Lock Enabled" \
 		--icon "$icon" \
 		--alignment "left" \
@@ -694,15 +694,15 @@ else
 fi
 checkTokenExpiration # check / get access token
 
-# Prompt user for Activation Lock mode
+# Prompt user for Recovery Lock mode
 enable_disable_prompt
-echo "INFO: User selected Activation Lock mode: $mode"
+echo "INFO: User selected Recovery Lock mode: $mode"
 # echo "DEBUG: About to check mode. Value is: '$mode'"
 # echo "DEBUG: Length of mode: ${#mode}"
 # echo "DEBUG: Mode in hex: $(echo -n "$mode" | xxd)"
 
 ## GROUP AND PASSWORD CREATION BASED ON SELECTED MODE
-# Check if mode is set to enable or disable activation lock
+# Check if mode is set to enable or disable Recovery Lock
 if [[ "$mode" == "Enable" ]]; then # Enable mode
 	echo "INFO: Mode is set to 'enable Recovery Lock'. Proceeding with password options..."
 	create_random_password_prompt # Prompt for random password generation
