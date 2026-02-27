@@ -90,7 +90,8 @@ getAccessToken() {
         --data-urlencode "client_secret=${client_secret}")
     access_token=$(echo "$response" | jq -r '.access_token')
     token_expires_in=$(echo "$response" | jq -r '.expires_in')
-    token_expiration_epoch=$(($current_epoch + $token_expires_in - 1))
+	current_epoch=$(date +%s)
+	token_expiration_epoch=$(($current_epoch + $token_expires_in - 1))
 	if [[ "$response" == *error* ]]; then
 		echo "ERROR: Failed to retrieve access token or expiration time."
 		exit 1
@@ -160,9 +161,9 @@ credentialPrompt() {
     
     if [[ $exit_code -eq 0 ]]; then
         # Use jq to parse the JSON output
-        jamf_pro_url=$(echo "$serverDetails" | jq -r '."Jamf Pro URL"')
-        client_id=$(echo "$serverDetails" | jq -r '."Client ID"')
-        client_secret=$(echo "$serverDetails" | jq -r '."Client Secret"')
+        jamf_pro_url=$(echo "$serverDetails" | tr -d '\000-\031' | jq -r '."Jamf Pro URL"')
+		client_id=$(echo "$serverDetails" | tr -d '\000-\031' | jq -r '."Client ID"')
+		client_secret=$(echo "$serverDetails" | tr -d '\000-\031' | jq -r '."Client Secret"')
     else
         echo "User cancelled"
         exit 0
@@ -191,7 +192,7 @@ enable_disable_prompt() {
 		local exit_code=$?
 		if [ $exit_code = 0 ];then
 			# echo "DEBUG: Raw dialog output: $mode"
-			mode=$(echo $mode | awk -F '"' '{print $4}')
+			mode=$(echo "$mode" | grep -o '"SelectedOption" : "[^"]*"' | awk -F '"' '{print $4}')
 			# echo "DEBUG: Parsed mode: $mode"
 		else
 			echo "User cancelled"
@@ -384,7 +385,7 @@ donePrompt() {
 	# Prompt user that action is completed
 	/usr/local/bin/dialog \
 	--title "Recovery Lock Manager" \
-	--message "Action Completed. \n\nProcessed $num_group_members computers in the Smart Group '$group_name_lock_disabled'. \n\nPlease note that a reboot and Inventory update are required before the updated information will show in Jamf Pro" \
+	--message "Action Completed. \n\nProcessed $num_group_members computers in the Smart Group '${group_name_lock_disabled:-$group_name_lock_enabled}'. \n\nPlease note that a reboot and Inventory update are required before the updated information will show in Jamf Pro" \
 	--icon "$icon" \
 	--alignment "left" \
 	--small \
@@ -703,6 +704,8 @@ echo "INFO: User selected Recovery Lock mode: $mode"
 
 ## GROUP AND PASSWORD CREATION BASED ON SELECTED MODE
 # Check if mode is set to enable or disable Recovery Lock
+# echo "DEBUG: Mode value is: '$mode'"
+# echo "DEBUG: Mode hex: $(echo -n "$mode" | xxd)"
 if [[ "$mode" == "Enable" ]]; then # Enable mode
 	echo "INFO: Mode is set to 'enable Recovery Lock'. Proceeding with password options..."
 	create_random_password_prompt # Prompt for random password generation
@@ -750,7 +753,7 @@ group_members=$(curl --request GET \
 # If there are no group members exit
 if [[ $(echo "$group_members" | jq -r '.members | length') -eq 0 ]]; then
 	echo "WARNING: No group members found. Exiting."
-	if [[ "$mode" == "enable" ]]; then
+	if [[ "$mode" == "Enable" ]]; then
 		no_members_in_disabled_group_prompt
 	else
 		no_members_in_enabled_group_prompt
@@ -767,7 +770,8 @@ computer_ids=$(echo "$group_members" | jq -r '.members[]')
 # START PROCESSING COMPUTERS
 # iterate through each computer ID
 echo ""
-echo "###### Processing Computers in Smart Group '$group_name_lock_disabled' ######"
+group_name_display="${group_name_lock_disabled:-$group_name_lock_enabled}"
+echo "###### Processing Computers in Smart Group '$group_name_display' ######"
 echo "$computer_ids" | while read -r computer_id; do
 	[[ -z "$computer_id" ]] && continue
 	echo "#################### Processing computer ID: $computer_id ####################"
@@ -780,18 +784,18 @@ echo "$computer_ids" | while read -r computer_id; do
 	managementId=$(echo "$computer_inventory" | tr -d '\000-\037' | jq -r '.general.managementId')
 	echo "Management ID: $managementId"
 	#echo "DEBUG: RECOVERY LOCK PASSWORD: $recovery_password"
-	echo "INFO: User opted for a random password. Generating..."
-	recovery_password=$(generate_random_password)
-	if [ $? -ne 0 ]; then
-		echo "Failed to generate a random password. Exiting."
-		exit 1
-	fi
-	echo "INFO: Generated Recovery Lock Password."
-	#echo "DEBUG: Generated Recovery Lock Password: $recovery_password"
-	# if mode is set to 'enable', print Setting Recovery Lock, else print disabling recovery lock
-	if [[ "$mode" == "enable" ]]; then
+	if [[ "$mode" == "Enable" ]]; then
+		echo "INFO: Generating random password for device..."
+		recovery_password=$(generate_random_password)
+		if [ $? -ne 0 ]; then
+			echo "Failed to generate a random password. Exiting."
+			exit 1
+		fi
+		echo "INFO: Generated Recovery Lock Password."
+		#echo "DEBUG: Generated Recovery Lock Password: $recovery_password"
 		echo "Setting Recovery Lock for Management ID: $managementId"
 	else
+		recovery_password=""
 		echo "Disabling Recovery Lock for Management ID: $managementId"
 	fi
 	# Send API command to set or disable Recovery Lock
@@ -815,14 +819,13 @@ echo "$computer_ids" | while read -r computer_id; do
 	# Check if the command was successful and print message
 	echo "Response code: $response"
 	if [[ "$response" -eq 201 ]]; then # Command was successful
-		if [[ $mode == "enable" ]]; then
+		if [[ "$mode" == "Enable" ]]; then
 			echo "Recovery Lock set successfully."
-			# recalculate smart groups 
 		else
 			echo "Recovery Lock disabled successfully."
 		fi
 	else # Command failed
-		if [[ $mode == "enable" ]]; then
+		if [[ "$mode" == "Enable" ]]; then
 			echo "Failed to set Recovery Lock. Response code: $response"
 		else
 			echo "Failed to disable Recovery Lock. Response code: $response"
